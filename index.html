@@ -82,16 +82,18 @@
                 }
 
                 // Adding link annotations
-                page.getAnnotations().then(annotations => {
+                page.getAnnotations({ intent: 'display' }).then(annotations => {
                     annotations.forEach(annotation => {
                         if (annotation.subtype === 'Link' && annotation.url) {
+                            const [x1, y1, x2, y2] = annotation.rect;
+                            const rect = pdfPage.getViewport({ scale }).convertToViewportRectangle([x1, y1, x2, y2]);
                             const link = document.createElement('a');
                             link.href = annotation.url;
                             link.className = 'link-annotation';
-                            link.style.left = `${annotation.rect[0] * scale}px`;
-                            link.style.top = `${(viewport.height - annotation.rect[1]) * scale}px`;
-                            link.style.width = `${(annotation.rect[2] - annotation.rect[0]) * scale}px`;
-                            link.style.height = `${(annotation.rect[1] - annotation.rect[3]) * scale}px`;
+                            link.style.left = `${rect[0]}px`;
+                            link.style.top = `${rect[1]}px`;
+                            link.style.width = `${rect[2] - rect[0]}px`;
+                            link.style.height = `${rect[3] - rect[1]}px`;
                             link.target = '_blank';
                             pdfContainer.appendChild(link);
                         }
