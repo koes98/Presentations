@@ -18,90 +18,24 @@
         #pdf-container {
             width: 100%;
             height: 100%;
-            overflow: auto;
-            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        canvas {
-            width: 100%;
-            height: auto;
-        }
-        .link-annotation {
-            position: absolute;
-            border: 1px solid blue;
-            opacity: 0;
+        a {
+            display: block;
+            margin: 20px;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 5px;
         }
     </style>
 </head>
 <body>
     <div id="pdf-container">
-        <canvas id="pdf-render"></canvas>
+        <a href="Materials.pdf" download>Download PDF</a>
     </div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.9.359/pdf.min.js"></script>
-    <script>
-        const url = 'Materials.pdf';
-
-        let pdfDoc = null,
-            pageNum = 1,
-            scale = 1.5, // Adjust scale as necessary
-            canvas = document.getElementById('pdf-render'),
-            ctx = canvas.getContext('2d');
-
-        // Render the page
-        const renderPage = num => {
-            pdfDoc.getPage(num).then(page => {
-                const viewport = page.getViewport({ scale });
-                canvas.height = viewport.height;
-                canvas.width = viewport.width;
-
-                const renderContext = {
-                    canvasContext: ctx,
-                    viewport: viewport
-                };
-
-                page.render(renderContext).promise.then(() => {
-                    // Clear previous annotations
-                    const pdfContainer = document.getElementById('pdf-container');
-                    const oldLinks = pdfContainer.getElementsByClassName('link-annotation');
-                    while (oldLinks[0]) {
-                        oldLinks[0].parentNode.removeChild(oldLinks[0]);
-                    }
-
-                    // Add link annotations
-                    page.getAnnotations({ intent: 'display' }).then(annotations => {
-                        annotations.forEach(annotation => {
-                            if (annotation.subtype === 'Link' && annotation.url) {
-                                const [x1, y1, x2, y2] = annotation.rect;
-                                const rect = viewport.convertToViewportRectangle([x1, y1, x2, y2]);
-                                const link = document.createElement('a');
-                                link.href = annotation.url;
-                                link.className = 'link-annotation';
-                                link.style.left = `${rect[0]}px`;
-                                link.style.top = `${rect[1]}px`;
-                                link.style.width = `${rect[2] - rect[0]}px`;
-                                link.style.height = `${rect[3] - rect[1]}px`;
-                                link.target = '_blank';
-                                pdfContainer.appendChild(link);
-                            }
-                        });
-                    });
-                });
-            });
-        };
-
-        // Get Document
-        pdfjsLib.getDocument(url).promise.then(pdfDoc_ => {
-            pdfDoc = pdfDoc_;
-            renderPage(pageNum);
-        });
-
-        // Initial render on page load
-        window.addEventListener('load', () => {
-            pdfjsLib.getDocument(url).promise.then(pdfDoc_ => {
-                pdfDoc = pdfDoc_;
-                renderPage(pageNum);
-            });
-        });
-    </script>
 </body>
 </html>
