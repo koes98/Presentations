@@ -25,6 +25,11 @@
             width: 100%;
             height: auto;
         }
+        .link-annotation {
+            position: absolute;
+            border: 1px solid blue;
+            opacity: 0;
+        }
     </style>
 </head>
 <body>
@@ -38,78 +43,50 @@
 
         let pdfDoc = null,
             pageNum = 1,
-            pageIsRendering = false,
-            pageNumIsPending = null;
-
-        const scale = 1.5, // Adjust scale as necessary
-              canvas = document.getElementById('pdf-render'),
-              ctx = canvas.getContext('2d');
+            scale = 1.5, // Adjust scale as necessary
+            canvas = document.getElementById('pdf-render'),
+            ctx = canvas.getContext('2d');
 
         // Render the page
         const renderPage = num => {
-            pageIsRendering = true;
-
-            // Get page
             pdfDoc.getPage(num).then(page => {
                 const viewport = page.getViewport({ scale });
                 canvas.height = viewport.height;
                 canvas.width = viewport.width;
 
-                const renderCtx = {
+                const renderContext = {
                     canvasContext: ctx,
-                    viewport
+                    viewport: viewport
                 };
 
-                page.render(renderCtx).promise.then(() => {
-                    pageIsRendering = false;
-
-                    if (pageNumIsPending !== null) {
-                        renderPage(pageNumIsPending);
-                        pageNumIsPending = null;
+                page.render(renderContext).promise.then(() => {
+                    // Clear previous annotations
+                    const pdfContainer = document.getElementById('pdf-container');
+                    const oldLinks = pdfContainer.getElementsByClassName('link-annotation');
+                    while (oldLinks[0]) {
+                        oldLinks[0].parentNode.removeChild(oldLinks[0]);
                     }
-                });
 
-                // Add the link annotations to the canvas
-                const linkService = new pdfjsLib.PDFLinkService();
-                linkService.setDocument(pdfDoc);
-                linkService.setViewer({
-                    scrollPageIntoView: ({ destArray }) => {
-                        const dest = destArray[0];
-                        pdfDoc.getPageIndex(dest).then(pageIndex => {
-                            pageNum = pageIndex + 1;
-                            queueRenderPage(pageNum);
+                    // Add link annotations
+                    page.getAnnotations({ intent: 'display' }).then(annotations => {
+                        annotations.forEach(annotation => {
+                            if (annotation.subtype === 'Link' && annotation.url) {
+                                const [x1, y1, x2, y2] = annotation.rect;
+                                const rect = viewport.convertToViewportRectangle([x1, y1, x2, y2]);
+                                const link = document.createElement('a');
+                                link.href = annotation.url;
+                                link.className = 'link-annotation';
+                                link.style.left = `${rect[0]}px`;
+                                link.style.top = `${rect[1]}px`;
+                                link.style.width = `${rect[2] - rect[0]}px`;
+                                link.style.height = `${rect[3] - rect[1]}px`;
+                                link.target = '_blank';
+                                pdfContainer.appendChild(link);
+                            }
                         });
-                    }
-                });
-                
-                page.getAnnotations({ intent: 'display' }).then(annotations => {
-                    annotations.forEach(annotation => {
-                        if (annotation.subtype === 'Link' && annotation.url) {
-                            const link = document.createElement('a');
-                            link.href = annotation.url;
-                            link.textContent = annotation.url;
-                            link.style.position = 'absolute';
-                            link.style.left = `${annotation.rect[0]}px`;
-                            link.style.top = `${viewport.height - annotation.rect[1]}px`;
-                            link.style.width = `${annotation.rect[2] - annotation.rect[0]}px`;
-                            link.style.height = `${annotation.rect[1] - annotation.rect[3]}px`;
-                            link.style.border = '1px solid blue';
-                            link.style.opacity = '0';
-                            link.target = '_blank';
-                            document.getElementById('pdf-container').appendChild(link);
-                        }
                     });
                 });
             });
-        };
-
-        // Check for pages rendering
-        const queueRenderPage = num => {
-            if (pageIsRendering) {
-                pageNumIsPending = num;
-            } else {
-                renderPage(num);
-            }
         };
 
         // Get Document
