@@ -25,6 +25,11 @@
             width: 100%;
             height: auto;
         }
+        .link-annotation {
+            position: absolute;
+            border: 1px solid blue;
+            opacity: 0;
+        }
     </style>
 </head>
 <body>
@@ -69,22 +74,26 @@
                     }
                 });
 
+                // Clear previous annotations
+                const pdfContainer = document.getElementById('pdf-container');
+                const oldLinks = pdfContainer.getElementsByClassName('link-annotation');
+                while (oldLinks[0]) {
+                    oldLinks[0].parentNode.removeChild(oldLinks[0]);
+                }
+
                 // Adding link annotations
                 page.getAnnotations().then(annotations => {
                     annotations.forEach(annotation => {
                         if (annotation.subtype === 'Link' && annotation.url) {
                             const link = document.createElement('a');
                             link.href = annotation.url;
-                            link.textContent = annotation.url;
-                            link.style.position = 'absolute';
-                            link.style.left = `${annotation.rect[0]}px`;
-                            link.style.top = `${viewport.height - annotation.rect[1]}px`;
-                            link.style.width = `${annotation.rect[2] - annotation.rect[0]}px`;
-                            link.style.height = `${annotation.rect[1] - annotation.rect[3]}px`;
-                            link.style.border = '1px solid blue';
-                            link.style.opacity = '0';
+                            link.className = 'link-annotation';
+                            link.style.left = `${annotation.rect[0] * scale}px`;
+                            link.style.top = `${(viewport.height - annotation.rect[1]) * scale}px`;
+                            link.style.width = `${(annotation.rect[2] - annotation.rect[0]) * scale}px`;
+                            link.style.height = `${(annotation.rect[1] - annotation.rect[3]) * scale}px`;
                             link.target = '_blank';
-                            document.getElementById('pdf-container').appendChild(link);
+                            pdfContainer.appendChild(link);
                         }
                     });
                 });
